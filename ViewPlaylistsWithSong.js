@@ -1,6 +1,7 @@
 // NAME: ViewPlaylistsWithSong
 // AUTHOR: elijaholmos
 // DESCRIPTION: Adds context menu button to view playlists in your library that contain the selected song
+// VERSION: 1.0.0
 
 (async function ViewPlaylistsWithSong() {
     if (!Spicetify.LocalStorage) {
@@ -8,12 +9,12 @@
         return;
     }
 
-    //"constants"
+    // ------------ "constants" ------------
     const SONG_PAGE_DISABLED    = !window.initialState.isSongPageEnabled;   //does the user have the song page enabled or disabled per their Spicetify settings
-    let READY_TO_USE            = false;    //is the extension ready to use yet
+    let READY_TO_USE            = false;    //is the extension ready to use yet (has setup complete)
     
 
-    //API methods, add credit
+    // ------------ API methods, based off code from @khanhas ------------
     const fetchPlaylist = (uri) => new Promise((resolve, reject) => {
         Spicetify.BridgeAPI.cosmosJSON(
             {
@@ -37,36 +38,6 @@
                     image: res.playlist.picture,
                     tracks: res.items   //simplify this to only return what is necessary?
                 })
-            }
-        );
-    });
-
-    const fetchArtist = (uriBase62) => new Promise((resolve, reject) => {
-        Spicetify.CosmosAPI.resolver.get(
-            {
-                url: `hm://artist/v1/${uriBase62}/desktop?format=json`,
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(res.getJSONBody());
-            }
-        );
-    });
-
-    const fetchTrack = (uri) => new Promise((resolve, reject) => {
-        const arg = [uri, 0, -1];
-        Spicetify.BridgeAPI.request(
-            "track_metadata",
-            arg,
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(res);
             }
         );
     });
@@ -96,13 +67,18 @@
         );
     });
 
-    //Custom methods
-
+    // ------------ Custom methods ------------
+    /**
+     * get and store all the self-created, public playlists in the current user's library
+     * @param {boolean} [setup] whether or not to display "progressbar" with current retrieval status
+     * @returns {Array} array of custom playlist objects, see fetchPlaylist()
+     */
     const getUserPlaylists = async function (setup = false) {
         const playlists = [];
         const library = await fetchFolder();
         let counter = 1;    //for "progress bar" notification
         for (const item of library.rows) {
+            //if the current item in their library is a folder, we need to read all the playlists and any sub-folders inside it
             item.type == "folder" ? 
                 playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
                 item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
@@ -115,13 +91,41 @@
 
     //gets user's playlists, updates global variable, then calls itself after the specified delay
     const getUserPlaylistsLoop = async function () {
-        console.log('getUserPlaylistsLoop');
         USER_PLAYLISTS = await getUserPlaylists();
         setTimeout(getUserPlaylistsLoop, 5000);
         return;
     };
 
-    const generatePlaylistCard = function (playlist) {
+    //this needs to be recursive in case there are subfolders
+    const recursivelyExtractPlaylistsFromFolder = async function (folder) {
+        const playlists = [];
+        for(const item of folder.rows) {
+            item.type == "folder" ? 
+                playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
+                item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
+        }
+        return playlists;
+    };
+
+    /**
+     * Search through the stored playlist library for the specified song
+     * @param {string} uri URI of the song to search for
+     * @returns {Array} Array of playlists that contain the specified song
+     */
+    const getPlaylistsWithSong = function (uri) {
+        const playlists = [];
+        for(const playlist of USER_PLAYLISTS) 
+            playlist.tracks.some(track => track.link === uri) && playlists.push(playlist);
+        return playlists;
+    };
+
+    // ------------ HTML Methods ------------
+    /**
+     * pass in a playlist object and receive an HTML string ready to be appended to the SongPage grid
+     * @param {Object} playlist a custom playlist object, see fetchPlaylist()
+     * @returns {String} HTML string ready to be appended to the DOM
+     */
+    const generatePlaylistCard = function (playlist = {}) {
         return `<div class="col-md-3">
             <div class="card card-type-playlist" 
                 data-interaction-context="card"
@@ -210,11 +214,11 @@
         });
     };
 
-    const renderPlaylists = function ({playlists = [], song} = {}) {
-        console.log('received call to render playlists');
-        console.log(document.querySelector('.SongPage .Carousel'));   //why isn't this getting set to display:none
+    //render the given array of playlists on the SongPage
+    const renderPlaylists = function ({playlists = [], song = ''} = {}) {
         document.querySelector('.SongPage').setAttribute('current-song', song);  //update the current-song to prevent UI errors
 
+        //isolate and modify the wrapper element
         const wrapper = document.querySelector('.SongPage .glue-page-wrapper') || document.querySelector('.SongPage .profile-section');
         wrapper.className = 'profile-section container';
         wrapper.setAttribute('data-navbar-view-id', 'public-playlists');
@@ -229,40 +233,14 @@
         </div>`;
         wrapper.append(list_header);
 
-        //create the list of playlists
+        //create the grid of playlists
         const row_wrapper = document.createElement('div');
         row_wrapper.className = 'row standard-grid no-section-divider';
-        for (const playlist of playlists) {
+        for (const playlist of playlists) 
             row_wrapper.innerHTML += generatePlaylistCard(playlist);
-        }
+
         hideCarousel();
         wrapper.append(row_wrapper);
-    }
-
-    const renderPlaylistsOld = function (playlists = []) {
-        console.log('received call to render playlists');
-        //anchor tag is purely for styling
-        document.querySelector('.SongPage .GlueSectionDivider__title').innerHTML = `Appears in <a>${playlists.length}</a> of your playlists`
-
-        const carousel = document.querySelector('.SongPage .Carousel__grid');
-        carousel.innerHTML = '';
-        if(playlists.length == 0) return;   //can't render playlists if we don't have any to render
-        
-        carousel.style.width = `calc( (100% + var(--glue-grid-column-gutter)) / 4  * ${playlists.length}  - var(--glue-grid-column-gutter)  )`;
-        carousel.style['grid-template-columns'] = `repeat(${playlists.length}, minmax(170px, 1fr))`;
-        for(const playlist of playlists) 
-            carousel.innerHTML += generatePlaylistCard(playlist);
-    };
-
-    //this needs to be recursive in case there are subfolders
-    const recursivelyExtractPlaylistsFromFolder = async function (folder) {
-        const playlists = [];
-        for(const item of folder.rows) {
-            item.type == "folder" ? 
-                playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
-                item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
-        }
-        return playlists;
     };
 
     /**
@@ -273,12 +251,7 @@
         window.initialState = { ...window.initialState, isSongPageEnabled: value };
     };
 
-    const getPlaylistsWithSong = function (uri) {
-        const playlists = [];
-        for(const playlist of USER_PLAYLISTS) 
-            playlist.tracks.some(track => track.link === uri) && playlists.push(playlist);
-        return playlists;
-    };
+    // ------------ Other code ------------
 
     //function to be performed when ContextMenu button is clicked
     const btnClick = async function (uris) {
