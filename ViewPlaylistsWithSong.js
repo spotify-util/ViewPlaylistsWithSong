@@ -100,13 +100,15 @@
     const getUserPlaylists = async function () {
         const playlists = [];
         const library = await fetchFolder();
-        for(const item of library.rows)  {
-            console.log('looking at item', item);
+        let counter = 1;    //for "progress bar" notification
+        for (const item of library.rows) {
             item.type == "folder" ? 
                 playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
                 item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
-        }
+            Spicetify.showNotification(`ViewPlaylistsWithSong: Setup ${Math.round(((counter++) / library.rows.length) * 100)}% Complete`);
+        } //TODO: add error catching?
         READY_TO_USE = true;
+        Spicetify.showNotification(`ViewPlaylistsWithSong: Setup 100% Complete`);   //just in case counter gets messed up, display 100% notif to user
         return playlists;
     };
 
@@ -191,7 +193,6 @@
     //recursively hide the carousel element that appears by default on the SongPage
     //counter is to prevent infinite loops
     const hideCarousel = function (counter = 0) {
-        console.log(`hideCarousel counter ${counter}`);
         return new Promise((resolve, reject) => {
             if(counter > 10) reject('hideCarousel timed out');
             const carousel = document.querySelector('.SongPage .Carousel');
@@ -248,7 +249,6 @@
     const recursivelyExtractPlaylistsFromFolder = async function (folder) {
         const playlists = [];
         for(const item of folder.rows) {
-            console.log('looking at item', item);
             item.type == "folder" ? 
                 playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
                 item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
