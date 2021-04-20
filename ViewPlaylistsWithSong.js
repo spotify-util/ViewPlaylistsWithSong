@@ -1,10 +1,6 @@
-// @ts-check
-
-// NAME: Christian Spotify
-// AUTHOR: khanhas
-// DESCRIPTION: Auto skip explicit songs. Toggle in Profile menu.
-
-/// <reference path="C:\Users\eliol\spicetify-cli\globals.d.ts" />
+// NAME: ViewPlaylistsWithSong
+// AUTHOR: elijaholmos
+// DESCRIPTION: Adds context menu button to view playlists in your library that contain the selected song
 
 (async function ViewPlaylistsWithSong() {
     if (!Spicetify.LocalStorage) {
