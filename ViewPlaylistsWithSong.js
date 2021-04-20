@@ -200,9 +200,10 @@
         });
     };
 
-    const renderPlaylists = function (playlists = []) {
+    const renderPlaylists = function ({playlists = [], song} = {}) {
         console.log('received call to render playlists');
         console.log(document.querySelector('.SongPage .Carousel'));   //why isn't this getting set to display:none
+        document.querySelector('.SongPage').setAttribute('current-song', song);  //update the current-song to prevent UI errors
 
         const wrapper = document.querySelector('.SongPage .glue-page-wrapper') || document.querySelector('.SongPage .profile-section');
         wrapper.className = 'profile-section container';
@@ -270,13 +271,15 @@
         return playlists;
     };
 
-    let USER_PLAYLISTS = await getUserPlaylists();
-    //TODO: remove the carousel and replace it with something like the profile that scrolls vertically
+    var USER_PLAYLISTS = await getUserPlaylists();
 
     const btnClick = async function (uris) {
         if(uris.length != 1) throw new Error();
 
         const uri = uris[0];    //isolate the only uri passed to the function
+
+        //prevent appending the same HTML multiple times for one song if user repeatedly clicks button
+        if(document.querySelector('.SongPage')?.getAttribute('current-song') === uri) return;
 
         //prepare the data to be sent in the postMessage() function
         const data = {  // I reversed engineered this by watching JS events in the console. I don't entirely know what all of the properties mean
@@ -287,7 +290,7 @@
         };
         //enable the song page, otherwise the postMessage() requests will not work with track URIs
         SONG_PAGE_DISABLED && toggleSongPage(true);
-        //send the message to actually update the GUI
+        //send the message to update the GUI
         window.postMessage(data, window); 
 
         //retrieve the user's playlists that contain the selected song
@@ -296,7 +299,7 @@
 
         //code to execute after postMessage() has finished updating the UI
         setTimeout(function() {
-            renderPlaylists(matched_playlists); //render the playlists in the UI
+            renderPlaylists({song:uri, playlists:matched_playlists}); //render the playlists in the UI
             SONG_PAGE_DISABLED && toggleSongPage(false); //we need to disable the SongPage since we overrode its state earlier
         }, 250);
         return;
