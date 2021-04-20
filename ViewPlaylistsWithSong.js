@@ -97,7 +97,8 @@
     });
 
     //Custom methods
-    const getUserPlaylists = async function () {
+
+    const getUserPlaylists = async function (setup = false) {
         const playlists = [];
         const library = await fetchFolder();
         let counter = 1;    //for "progress bar" notification
@@ -105,11 +106,19 @@
             item.type == "folder" ? 
                 playlists.push(...(await recursivelyExtractPlaylistsFromFolder(item))) :
                 item.ownedBySelf && item.totalLength > 0 && playlists.push(await fetchPlaylist(item.link));
-            Spicetify.showNotification(`ViewPlaylistsWithSong: Setup ${Math.round(((counter++) / library.rows.length) * 100)}% Complete`);
+            setup && Spicetify.showNotification(`ViewPlaylistsWithSong: Setup ${Math.round(((counter++) / library.rows.length) * 100)}% Complete`);
         } //TODO: add error catching?
         READY_TO_USE = true;
-        Spicetify.showNotification(`ViewPlaylistsWithSong: Setup 100% Complete`);   //just in case counter gets messed up, display 100% notif to user
+        setup && Spicetify.showNotification(`ViewPlaylistsWithSong: Setup 100% Complete`);   //just in case counter gets messed up, display 100% notif to user
         return playlists;
+    };
+
+    //gets user's playlists, updates global variable, then calls itself after the specified delay
+    const getUserPlaylistsLoop = async function () {
+        console.log('getUserPlaylistsLoop');
+        USER_PLAYLISTS = await getUserPlaylists();
+        setTimeout(getUserPlaylistsLoop, 5000);
+        return;
     };
 
     const generatePlaylistCard = function (playlist) {
@@ -271,8 +280,7 @@
         return playlists;
     };
 
-    var USER_PLAYLISTS = await getUserPlaylists();
-
+    //function to be performed when ContextMenu button is clicked
     const btnClick = async function (uris) {
         if(uris.length != 1) throw new Error();
 
@@ -310,4 +318,11 @@
         if(uris.length != 1) return false;  //only one song at a time
         return READY_TO_USE && Spicetify.URI.fromString(uris[0]).type == Spicetify.URI.Type.TRACK;  //uri must be track type
     }, "search").register();
+
+    //this goes at the bottom because await
+    var USER_PLAYLISTS = await getUserPlaylists(true);
+
+    //in case the user adds/removes a playlist or changes the song composition,
+    //this will ensure the USER_PLAYLISTS variable is (nearly) always up to date
+    getUserPlaylistsLoop();
 })();
