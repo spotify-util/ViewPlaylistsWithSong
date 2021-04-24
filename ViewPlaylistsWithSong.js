@@ -1,7 +1,7 @@
 // NAME: ViewPlaylistsWithSong
 // AUTHOR: elijaholmos
 // DESCRIPTION: Adds context menu button to view playlists in your library that contain the selected song
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 
 (async function ViewPlaylistsWithSong() {
     if (!Spicetify.LocalStorage) {
@@ -12,7 +12,9 @@
     // ------------ "constants" ------------
     const SONG_PAGE_DISABLED    = !window.initialState.isSongPageEnabled;   //does the user have the song page enabled or disabled per their Spicetify settings
     let READY_TO_USE            = false;    //is the extension ready to use yet (has setup complete)
-    
+    const VERSION = '1.0.1';
+
+    console.log(`Running ViewPlaylistsWithSong v${VERSION}`);   //log current version for debugging purposes
 
     // ------------ API methods, based off code from @khanhas ------------
     const fetchPlaylist = (uri) => new Promise((resolve, reject) => {
@@ -276,7 +278,6 @@
 
         //retrieve the user's playlists that contain the selected song
         const matched_playlists = getPlaylistsWithSong(uri);
-        console.log(matched_playlists);
 
         //code to execute after postMessage() has finished updating the UI
         setTimeout(function() {
