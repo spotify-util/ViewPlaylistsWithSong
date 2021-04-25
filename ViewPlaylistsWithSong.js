@@ -261,9 +261,6 @@
 
         const uri = uris[0];    //isolate the only uri passed to the function
 
-        //prevent appending the same HTML multiple times for one song if user repeatedly clicks button
-        if(document.querySelector('.SongPage')?.getAttribute('current-song') === uri) return;
-
         //prepare the data to be sent in the postMessage() function
         const data = {  // I reversed engineered this by watching JS events in the console. I don't entirely know what all of the properties mean
             type: "navigation_request_state",
@@ -275,6 +272,9 @@
         SONG_PAGE_DISABLED && toggleSongPage(true);
         //send the message to update the GUI
         window.postMessage(data, window); 
+
+        //prevent appending the same HTML multiple times for one song if user repeatedly clicks button
+        if (document.querySelector('.SongPage')?.getAttribute('current-song') === uri) return;
 
         //retrieve the user's playlists that contain the selected song
         const matched_playlists = getPlaylistsWithSong(uri);
