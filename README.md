@@ -9,7 +9,7 @@ When you click this button, you will be redirected to a page that displays the s
 If you select a song that does not appear in any of your playlists, no playlists will be displayed.
 
 ## How to install it
-Make sure you have a functioning, updated install of [Spicetify](https://github.com/khanhas/spicetify-cli/). Download the file in this repository called `ViewPlaylistsWithSong.js` and place this file inside your `.spicetify/Extensions` folder. If this is your first time downloading an extension, you may want to reference [this](https://github.com/khanhas/spicetify-cli/wiki/Extensions) document.
+Make sure you have a functioning, updated install of [Spicetify](https://github.com/khanhas/spicetify-cli/) (v1.2.1). Download the file in this repository called `ViewPlaylistsWithSong.js` and place this file inside your `.spicetify/Extensions` folder. If this is your first time downloading an extension, you may want to reference [this](https://github.com/khanhas/spicetify-cli/wiki/Extensions) document.
 Once you have placed the file in the Extensions directory, you need to open the file called `config.ini` (should be in the parent directory) and edit the `Extensions` value under `AdditionalOptions`. If you have no other extensions, set it equal to the filename (`ViewPlaylistsWithSong.js`). If you have other extensions installed, proceed the filename with a pipe character (`|`) as mentioned in the [documentation](https://github.com/khanhas/spicetify-cli/wiki/Extensions). 
 
 ## What if it doesn't work
