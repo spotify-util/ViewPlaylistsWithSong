@@ -4,7 +4,7 @@
 // VERSION: 1.0.1
 
 (async function ViewPlaylistsWithSong() {
-    if (!Spicetify.LocalStorage) {
+    if (!Spicetify.LocalStorage || !Spicetify.BridgeAPI) {
         setTimeout(ViewPlaylistsWithSong, 1000);
         return;
     }
@@ -288,13 +288,15 @@
     };
 
     //add context menu item
-    new Spicetify.ContextMenu.Item("View Playlists with Song", btnClick, (uris) => {
+    const vpws_button = new Spicetify.ContextMenu.Item("View Playlists with Song", btnClick, (uris) => {
         if(uris.length != 1) return false;  //only one song at a time
-        return READY_TO_USE && Spicetify.URI.fromString(uris[0]).type == Spicetify.URI.Type.TRACK;  //uri must be track type
-    }, "search").register();
+        return Spicetify.URI.fromString(uris[0]).type == Spicetify.URI.Type.TRACK;  //uri must be track type
+    }, "search", true);
+    vpws_button.register();
 
     //this goes at the bottom because await
     var USER_PLAYLISTS = await getUserPlaylists(true);
+    vpws_button.disabled = false;
 
     //in case the user adds/removes a playlist or changes the song composition,
     //this will ensure the USER_PLAYLISTS variable is (nearly) always up to date
