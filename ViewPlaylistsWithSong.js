@@ -1,7 +1,7 @@
 // NAME: ViewPlaylistsWithSong
 // AUTHOR: elijaholmos
 // DESCRIPTION: Adds context menu button to view playlists in your library that contain the selected song
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 
 (async function ViewPlaylistsWithSong() {
     if (!Spicetify.LocalStorage) {
